@@ -106,6 +106,26 @@ def count_classes(labels):
 
     return counts
 
+def gini_impurity(labels):
+    """
+    Calculates the Gini impurity of a group of class labels.
+
+    A Gini impurity of 0 means that all observations
+    belong to the same class.
+    """
+
+    if len(labels) == 0:
+        return 0.0
+
+    class_counts = count_classes(labels)
+
+    impurity = 1.0
+
+    for count in class_counts.values():
+        probability = count / len(labels)
+        impurity -= probability ** 2
+
+    return impurity
 
 def main():
     """Main function of the program."""
@@ -136,6 +156,16 @@ def main():
     print("------------------")
     print(f"Training: {count_classes(y_train)}")
     print(f"Testing: {count_classes(y_test)}")
+    print("\nGini Impurity Tests")
+    print("-------------------")
+
+    pure_group = [1, 1, 1, 1]
+    mixed_group = [1, 1, 2, 2]
+    three_class_group = [1, 2, 3]
+
+    print(f"Pure group [1, 1, 1, 1]: {gini_impurity(pure_group):.4f}")
+    print(f"Mixed group [1, 1, 2, 2]: {gini_impurity(mixed_group):.4f}")
+    print(f"Three classes [1, 2, 3]: {gini_impurity(three_class_group):.4f}")
 
 
 if __name__ == "__main__":
