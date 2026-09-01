@@ -251,6 +251,134 @@ def find_best_split(features, labels):
 
     return best_split
 
+def majority_class(labels):
+    """
+    Returns the most frequent class in a group of labels.
+    """
+
+    class_counts = count_classes(labels)
+
+    return max(class_counts, key=class_counts.get)
+
+def build_tree(
+    features,
+    labels,
+    depth=0,
+    max_depth=4,
+    min_samples_split=2
+):
+    """
+    Recursively builds a decision tree.
+
+    The tree stops growing when:
+        1. All observations belong to the same class.
+        2. The maximum depth is reached.
+        3. There are too few observations to continue splitting.
+        4. No split improves the current Gini impurity.
+    """
+
+    # If every observation belongs to the same class,
+    # create a leaf immediately.
+    if len(set(labels)) == 1:
+        return {
+            "leaf": True,
+            "prediction": labels[0]
+        }
+
+    # Stop if maximum depth is reached.
+    if depth >= max_depth:
+        return {
+            "leaf": True,
+            "prediction": majority_class(labels)
+        }
+
+    # Stop if there are too few observations.
+    if len(labels) < min_samples_split:
+        return {
+            "leaf": True,
+            "prediction": majority_class(labels)
+        }
+
+    # Search for the best possible split.
+    best_split = find_best_split(features, labels)
+
+    # If no valid split was found, create a leaf.
+    if best_split is None:
+        return {
+            "leaf": True,
+            "prediction": majority_class(labels)
+        }
+
+    # Compare impurity before and after the split.
+    current_gini = gini_impurity(labels)
+
+    if best_split["gini"] >= current_gini:
+        return {
+            "leaf": True,
+            "prediction": majority_class(labels)
+        }
+
+    # Recursively build the left branch.
+    left_branch = build_tree(
+        best_split["x_left"],
+        best_split["y_left"],
+        depth + 1,
+        max_depth,
+        min_samples_split
+    )
+
+    # Recursively build the right branch.
+    right_branch = build_tree(
+        best_split["x_right"],
+        best_split["y_right"],
+        depth + 1,
+        max_depth,
+        min_samples_split
+    )
+
+    # Create an internal decision node.
+    return {
+        "leaf": False,
+        "feature_index": best_split["feature_index"],
+        "threshold": best_split["threshold"],
+        "gini": best_split["gini"],
+        "samples": len(labels),
+        "left": left_branch,
+        "right": right_branch
+    }
+
+def predict_sample(sample, tree):
+    """
+    Predicts the class of a single observation
+    by moving through the decision tree.
+    """
+
+    # If a leaf is reached, return its prediction.
+    if tree["leaf"]:
+        return tree["prediction"]
+
+    feature_index = tree["feature_index"]
+    threshold = tree["threshold"]
+
+    # Follow the corresponding branch.
+    if sample[feature_index] <= threshold:
+        return predict_sample(sample, tree["left"])
+
+    return predict_sample(sample, tree["right"])
+
+def predict(features, tree):
+    """
+    Predicts the class of multiple observations.
+    """
+
+    predictions = []
+
+    for sample in features:
+        prediction = predict_sample(sample, tree)
+        predictions.append(prediction)
+
+    return predictions
+
 def main():
     """Main function of the program."""
 
@@ -280,6 +408,7 @@ def main():
     print("------------------")
     print(f"Training: {count_classes(y_train)}")
     print(f"Testing: {count_classes(y_test)}")
+
     print("\nGini Impurity Tests")
     print("-------------------")
 
@@ -290,6 +419,30 @@ def main():
     print(f"Pure group [1, 1, 1, 1]: {gini_impurity(pure_group):.4f}")
     print(f"Mixed group [1, 1, 2, 2]: {gini_impurity(mixed_group):.4f}")
     print(f"Three classes [1, 2, 3]: {gini_impurity(three_class_group):.4f}")
+
+    print("\nBuilding Decision Tree")
+    print("----------------------")
+
+    tree = build_tree(
+        x_train,
+        y_train,
+        max_depth=4,
+        min_samples_split=2
+    )
+
+    print("Decision tree successfully built.")
+
+    predictions = predict(x_test, tree)
+
+    print("\nFirst 10 Test Predictions")
+    print("-------------------------")
+
+    for i in range(min(10, len(y_test))):
+        print(
+            f"Wine {i + 1}: "
+            f"Real class = {y_test[i]} | "
+            f"Predicted class = {predictions[i]}"
+        )
 
     print("\nBest First Split")
     print("----------------")
