@@ -379,6 +379,148 @@ def predict(features, tree):
 
     return predictions
 
+def create_confusion_matrix(actual, predicted, classes):
+    """
+    Creates a confusion matrix manually.
+
+    Rows represent the actual classes.
+    Columns represent the predicted classes.
+    """
+
+    matrix = []
+
+    # Create an empty square matrix filled with zeros.
+    for _ in classes:
+        row = [0] * len(classes)
+        matrix.append(row)
+
+    # Map each class to its position in the matrix.
+    class_index = {}
+
+    for index, class_label in enumerate(classes):
+        class_index[class_label] = index
+
+    # Count every real/predicted combination.
+    for real, prediction in zip(actual, predicted):
+        real_index = class_index[real]
+        predicted_index = class_index[prediction]
+
+        matrix[real_index][predicted_index] += 1
+
+    return matrix
+
+def print_confusion_matrix(matrix, classes):
+    """
+    Prints the confusion matrix in a readable format.
+    """
+
+    print("Actual \\ Predicted", end="")
+
+    for class_label in classes:
+        print(f"{class_label:>8}", end="")
+
+    print()
+
+    for i, row in enumerate(matrix):
+        print(f"Class {classes[i]:<9}", end="")
+
+        for value in row:
+            print(f"{value:>8}", end="")
+
+        print()
+
+def calculate_accuracy(actual, predicted):
+    """
+    Calculates classification accuracy.
+    """
+
+    correct_predictions = 0
+
+    for real, prediction in zip(actual, predicted):
+        if real == prediction:
+            correct_predictions += 1
+
+    return correct_predictions / len(actual)
+
+def calculate_class_metrics(matrix, classes):
+    """
+    Calculates precision, recall and F1-score
+    for each class using the confusion matrix.
+    """
+
+    metrics = {}
+
+    for i, class_label in enumerate(classes):
+
+        true_positive = matrix[i][i]
+
+        false_positive = 0
+        for row in range(len(classes)):
+            if row != i:
+                false_positive += matrix[row][i]
+
+        false_negative = 0
+        for column in range(len(classes)):
+            if column != i:
+                false_negative += matrix[i][column]
+
+        if true_positive + false_positive == 0:
+            precision = 0.0
+        else:
+            precision = (
+                true_positive
+                / (true_positive + false_positive)
+            )
+
+        if true_positive + false_negative == 0:
+            recall = 0.0
+        else:
+            recall = (
+                true_positive
+                / (true_positive + false_negative)
+            )
+
+        if precision + recall == 0:
+            f1_score = 0.0
+        else:
+            f1_score = (
+                2 * precision * recall
+                / (precision + recall)
+            )
+
+        metrics[class_label] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1_score
+        }
+
+    return metrics
+
+def calculate_macro_averages(metrics):
+    """
+    Calculates macro averages for precision,
+    recall and F1-score.
+    """
+
+    number_of_classes = len(metrics)
+
+    macro_precision = sum(
+        metric["precision"]
+        for metric in metrics.values()
+    ) / number_of_classes
+
+    macro_recall = sum(
+        metric["recall"]
+        for metric in metrics.values()
+    ) / number_of_classes
+
+    macro_f1 = sum(
+        metric["f1"]
+        for metric in metrics.values()
+    ) / number_of_classes
+
+    return macro_precision, macro_recall, macro_f1
+
 def main():
     """Main function of the program."""
 
@@ -443,6 +585,61 @@ def main():
             f"Real class = {y_test[i]} | "
             f"Predicted class = {predictions[i]}"
         )
+
+    classes = sorted(set(labels))
+
+    confusion_matrix = create_confusion_matrix(
+        y_test,
+        predictions,
+        classes
+    )
+
+    print("\nConfusion Matrix")
+    print("----------------")
+
+    print_confusion_matrix(
+        confusion_matrix,
+        classes
+    )
+
+    accuracy = calculate_accuracy(
+        y_test,
+        predictions
+    )
+
+    metrics = calculate_class_metrics(
+        confusion_matrix,
+        classes
+    )
+
+    macro_precision, macro_recall, macro_f1 = (
+        calculate_macro_averages(metrics)
+    )
+
+    print("\nClassification Metrics")
+    print("----------------------")
+
+    print(f"Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)")
+
+    for class_label in classes:
+        print(f"\nClass {class_label}:")
+        print(
+            f"  Precision: "
+            f"{metrics[class_label]['precision']:.4f}"
+        )
+        print(
+            f"  Recall:    "
+            f"{metrics[class_label]['recall']:.4f}"
+        )
+        print(
+            f"  F1-score:  "
+            f"{metrics[class_label]['f1']:.4f}"
+        )
+
+    print("\nMacro averages:")
+    print(f"  Precision: {macro_precision:.4f}")
+    print(f"  Recall:    {macro_recall:.4f}")
+    print(f"  F1-score:  {macro_f1:.4f}")
 
     print("\nBest First Split")
     print("----------------")
