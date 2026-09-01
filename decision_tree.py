@@ -15,6 +15,21 @@ from pathlib import Path
 # wine.data must be in the same folder as this Python file.
 DATASET_PATH = Path(__file__).with_name("wine.data")
 
+FEATURE_NAMES = [
+    "Alcohol",
+    "Malic acid",
+    "Ash",
+    "Alcalinity of ash",
+    "Magnesium",
+    "Total phenols",
+    "Flavanoids",
+    "Nonflavanoid phenols",
+    "Proanthocyanins",
+    "Color intensity",
+    "Hue",
+    "OD280/OD315 of diluted wines",
+    "Proline"
+]
 
 def load_wine_data(file_path):
     """
@@ -127,6 +142,115 @@ def gini_impurity(labels):
 
     return impurity
 
+def split_dataset(features, labels, feature_index, threshold):
+    """
+    Divides a dataset into two groups according to a feature
+    and a threshold.
+
+    Left group:
+        feature value <= threshold
+
+    Right group:
+        feature value > threshold
+    """
+
+    x_left = []
+    y_left = []
+    x_right = []
+    y_right = []
+
+    for sample, label in zip(features, labels):
+
+        if sample[feature_index] <= threshold:
+            x_left.append(sample)
+            y_left.append(label)
+        else:
+            x_right.append(sample)
+            y_right.append(label)
+
+    return x_left, y_left, x_right, y_right
+
+def weighted_gini(left_labels, right_labels):
+    """
+    Calculates the weighted Gini impurity produced by a split.
+    """
+
+    total_size = len(left_labels) + len(right_labels)
+
+    if total_size == 0:
+        return 0.0
+
+    left_weight = len(left_labels) / total_size
+    right_weight = len(right_labels) / total_size
+
+    left_impurity = gini_impurity(left_labels)
+    right_impurity = gini_impurity(right_labels)
+
+    return (
+        left_weight * left_impurity
+        + right_weight * right_impurity
+    )
+
+def find_best_split(features, labels):
+    """
+    Searches all features and possible thresholds to find
+    the split with the lowest weighted Gini impurity.
+
+    Returns:
+        Dictionary containing the best feature, threshold,
+        Gini score and resulting groups.
+    """
+
+    best_split = None
+    best_gini = float("inf")
+
+    number_of_features = len(features[0])
+
+    # Try every feature
+    for feature_index in range(number_of_features):
+
+        # Obtain all different values for this feature
+        values = sorted(
+            set(sample[feature_index] for sample in features)
+        )
+
+        # Test thresholds between consecutive values
+        for i in range(len(values) - 1):
+
+            threshold = (values[i] + values[i + 1]) / 2
+
+            x_left, y_left, x_right, y_right = split_dataset(
+                features,
+                labels,
+                feature_index,
+                threshold
+            )
+
+            # Ignore divisions where one side is empty
+            if not y_left or not y_right:
+                continue
+
+            split_gini = weighted_gini(
+                y_left,
+                y_right
+            )
+
+            if split_gini < best_gini:
+
+                best_gini = split_gini
+
+                best_split = {
+                    "feature_index": feature_index,
+                    "threshold": threshold,
+                    "gini": split_gini,
+                    "x_left": x_left,
+                    "y_left": y_left,
+                    "x_right": x_right,
+                    "y_right": y_right
+                }
+
+    return best_split
+
 def main():
     """Main function of the program."""
 
@@ -166,6 +290,41 @@ def main():
     print(f"Pure group [1, 1, 1, 1]: {gini_impurity(pure_group):.4f}")
     print(f"Mixed group [1, 1, 2, 2]: {gini_impurity(mixed_group):.4f}")
     print(f"Three classes [1, 2, 3]: {gini_impurity(three_class_group):.4f}")
+
+    print("\nBest First Split")
+    print("----------------")
+
+    best_split = find_best_split(x_train, y_train)
+
+    feature_index = best_split["feature_index"]
+
+    print(
+        f"Feature: {FEATURE_NAMES[feature_index]}"
+    )
+
+    print(
+        f"Threshold: {best_split['threshold']:.4f}"
+    )
+
+    print(
+        f"Weighted Gini: {best_split['gini']:.4f}"
+    )
+
+    print(
+        f"Left observations: {len(best_split['y_left'])}"
+    )
+
+    print(
+        f"Right observations: {len(best_split['y_right'])}"
+    )
+
+    print(
+        f"Left classes: {count_classes(best_split['y_left'])}"
+    )
+
+    print(
+        f"Right classes: {count_classes(best_split['y_right'])}"
+    )
 
 
 if __name__ == "__main__":
