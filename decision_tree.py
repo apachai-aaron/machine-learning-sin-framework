@@ -64,46 +64,70 @@ def load_wine_data(file_path):
 
     return features, labels
 
-
-def split_data(features, labels, test_ratio=0.20, seed=42):
+def split_data(
+    features,
+    labels,
+    validation_ratio=0.15,
+    test_ratio=0.15,
+    seed=42
+):
     """
-    Randomly divides the dataset into training and testing sets.
+    Randomly divides the dataset into training,
+    validation and testing sets.
 
     Args:
         features: Predictor variables.
         labels: Target classes.
-        test_ratio: Proportion of observations used for testing.
-        seed: Random seed used to make the split reproducible.
+        validation_ratio: Proportion used for validation.
+        test_ratio: Proportion used for final testing.
+        seed: Random seed for reproducibility.
 
     Returns:
-        x_train, x_test, y_train, y_test
+        x_train, x_validation, x_test,
+        y_train, y_validation, y_test
     """
 
-    # Generate one index for each observation
     indices = list(range(len(features)))
 
-    # Fix the seed so the experiment can be reproduced
     random.seed(seed)
-
-    # Randomly shuffle the observations
     random.shuffle(indices)
 
-    # Calculate the number of observations for the test set
-    test_size = int(len(features) * test_ratio)
+    total_size = len(features)
 
-    # First indices are used for testing
+    test_size = int(total_size * test_ratio)
+    validation_size = int(total_size * validation_ratio)
+
     test_indices = indices[:test_size]
 
-    # Remaining indices are used for training
-    train_indices = indices[test_size:]
+    validation_indices = indices[
+        test_size:test_size + validation_size
+    ]
 
-    x_train = [features[index] for index in train_indices]
-    y_train = [labels[index] for index in train_indices]
+    train_indices = indices[
+        test_size + validation_size:
+    ]
 
-    x_test = [features[index] for index in test_indices]
-    y_test = [labels[index] for index in test_indices]
+    x_train = [features[i] for i in train_indices]
+    y_train = [labels[i] for i in train_indices]
 
-    return x_train, x_test, y_train, y_test
+    x_validation = [
+        features[i] for i in validation_indices
+    ]
+    y_validation = [
+        labels[i] for i in validation_indices
+    ]
+
+    x_test = [features[i] for i in test_indices]
+    y_test = [labels[i] for i in test_indices]
+
+    return (
+        x_train,
+        x_validation,
+        x_test,
+        y_train,
+        y_validation,
+        y_test
+    )
 
 
 def count_classes(labels):
@@ -521,6 +545,53 @@ def calculate_macro_averages(metrics):
 
     return macro_precision, macro_recall, macro_f1
 
+def choose_best_depth(
+    x_train,
+    y_train,
+    x_validation,
+    y_validation,
+    depths
+):
+    """
+    Trains multiple decision trees using different
+    maximum depths and selects the depth with the
+    highest validation accuracy.
+    """
+
+    best_depth = None
+    best_accuracy = -1.0
+
+    results = []
+
+    for depth in depths:
+
+        tree = build_tree(
+            x_train,
+            y_train,
+            max_depth=depth,
+            min_samples_split=2
+        )
+
+        predictions = predict(
+            x_validation,
+            tree
+        )
+
+        accuracy = calculate_accuracy(
+            y_validation,
+            predictions
+        )
+
+        results.append(
+            (depth, accuracy)
+        )
+
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_depth = depth
+
+    return best_depth, best_accuracy, results
+
 def main():
     """Main function of the program."""
 
@@ -533,22 +604,32 @@ def main():
     print(f"Number of features: {len(features[0])}")
     print(f"Classes found: {sorted(set(labels))}")
 
-    # Divide into training and testing data
-    x_train, x_test, y_train, y_test = split_data(
+    # Divide into training, validation and testing data
+    (
+        x_train,
+        x_validation,
+        x_test,
+        y_train,
+        y_validation,
+        y_test
+    ) = split_data(
         features,
         labels,
-        test_ratio=0.20,
+        validation_ratio=0.15,
+        test_ratio=0.15,
         seed=42
     )
 
-    print("\nTrain/Test Split")
-    print("----------------")
+    print("\nDataset Split")
+    print("-------------")
     print(f"Training observations: {len(x_train)}")
+    print(f"Validation observations: {len(x_validation)}")
     print(f"Testing observations: {len(x_test)}")
 
     print("\nClass distribution")
     print("------------------")
     print(f"Training: {count_classes(y_train)}")
+    print(f"Validation: {count_classes(y_validation)}")
     print(f"Testing: {count_classes(y_test)}")
 
     print("\nGini Impurity Tests")
@@ -562,17 +643,51 @@ def main():
     print(f"Mixed group [1, 1, 2, 2]: {gini_impurity(mixed_group):.4f}")
     print(f"Three classes [1, 2, 3]: {gini_impurity(three_class_group):.4f}")
 
-    print("\nBuilding Decision Tree")
-    print("----------------------")
+    print("\nModel Selection")
+    print("---------------")
+
+    candidate_depths = [1, 2, 3, 4, 5, 6]
+
+    (
+        best_depth,
+        best_validation_accuracy,
+        depth_results
+    ) = choose_best_depth(
+        x_train,
+        y_train,
+        x_validation,
+        y_validation,
+        candidate_depths
+    )
+
+    for depth, accuracy in depth_results:
+        print(
+            f"Depth {depth}: "
+            f"{accuracy:.4f} "
+            f"({accuracy * 100:.2f}%)"
+        )
+
+    print(
+        f"\nSelected depth: {best_depth}"
+    )
+
+    print(
+        f"Best validation accuracy: "
+        f"{best_validation_accuracy:.4f} "
+        f"({best_validation_accuracy * 100:.2f}%)"
+    )
+
+    print("\nBuilding Final Decision Tree")
+    print("----------------------------")
 
     tree = build_tree(
         x_train,
         y_train,
-        max_depth=4,
+        max_depth=best_depth,
         min_samples_split=2
     )
 
-    print("Decision tree successfully built.")
+    print("Final decision tree successfully built.")
 
     predictions = predict(x_test, tree)
 
