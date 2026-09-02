@@ -45,6 +45,12 @@ UCI Machine Learning Repository - Wine Dataset
 
 https://archive.ics.uci.edu/dataset/109/wine
 
+## Reporte del proyecto
+
+El reporte completo de la implementación, metodología, resultados y conclusiones se encuentra disponible en:
+
+[Ver reporte final en PDF](./Reporte_M2_Decision_Tree_sin_framework.pdf)
+
 ## Algoritmo
 
 Se implementó manualmente en Python un clasificador **Decision Tree**.
