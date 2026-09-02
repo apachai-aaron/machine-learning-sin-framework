@@ -593,9 +593,12 @@ def choose_best_depth(
     return best_depth, best_accuracy, results
 
 def main():
-    """Main function of the program."""
+    """Runs the complete Decision Tree classification experiment."""
 
-    # Load complete dataset
+    # ----------------------------------------------------------
+    # 1. Load dataset
+    # ----------------------------------------------------------
+
     features, labels = load_wine_data(DATASET_PATH)
 
     print("UCI Wine Dataset")
@@ -604,7 +607,10 @@ def main():
     print(f"Number of features: {len(features[0])}")
     print(f"Classes found: {sorted(set(labels))}")
 
-    # Divide into training, validation and testing data
+    # ----------------------------------------------------------
+    # 2. Split dataset
+    # ----------------------------------------------------------
+
     (
         x_train,
         x_validation,
@@ -626,22 +632,15 @@ def main():
     print(f"Validation observations: {len(x_validation)}")
     print(f"Testing observations: {len(x_test)}")
 
-    print("\nClass distribution")
+    print("\nClass Distribution")
     print("------------------")
     print(f"Training: {count_classes(y_train)}")
     print(f"Validation: {count_classes(y_validation)}")
     print(f"Testing: {count_classes(y_test)}")
 
-    print("\nGini Impurity Tests")
-    print("-------------------")
-
-    pure_group = [1, 1, 1, 1]
-    mixed_group = [1, 1, 2, 2]
-    three_class_group = [1, 2, 3]
-
-    print(f"Pure group [1, 1, 1, 1]: {gini_impurity(pure_group):.4f}")
-    print(f"Mixed group [1, 1, 2, 2]: {gini_impurity(mixed_group):.4f}")
-    print(f"Three classes [1, 2, 3]: {gini_impurity(three_class_group):.4f}")
+    # ----------------------------------------------------------
+    # 3. Select tree depth using validation data
+    # ----------------------------------------------------------
 
     print("\nModel Selection")
     print("---------------")
@@ -660,22 +659,23 @@ def main():
         candidate_depths
     )
 
-    for depth, accuracy in depth_results:
+    for depth, validation_accuracy in depth_results:
         print(
             f"Depth {depth}: "
-            f"{accuracy:.4f} "
-            f"({accuracy * 100:.2f}%)"
+            f"{validation_accuracy:.4f} "
+            f"({validation_accuracy * 100:.2f}%)"
         )
 
-    print(
-        f"\nSelected depth: {best_depth}"
-    )
-
+    print(f"\nSelected depth: {best_depth}")
     print(
         f"Best validation accuracy: "
         f"{best_validation_accuracy:.4f} "
         f"({best_validation_accuracy * 100:.2f}%)"
     )
+
+    # ----------------------------------------------------------
+    # 4. Build final tree
+    # ----------------------------------------------------------
 
     print("\nBuilding Final Decision Tree")
     print("----------------------------")
@@ -689,6 +689,10 @@ def main():
 
     print("Final decision tree successfully built.")
 
+    # ----------------------------------------------------------
+    # 5. Make predictions on the test set
+    # ----------------------------------------------------------
+
     predictions = predict(x_test, tree)
 
     print("\nFirst 10 Test Predictions")
@@ -700,6 +704,10 @@ def main():
             f"Real class = {y_test[i]} | "
             f"Predicted class = {predictions[i]}"
         )
+
+    # ----------------------------------------------------------
+    # 6. Confusion matrix
+    # ----------------------------------------------------------
 
     classes = sorted(set(labels))
 
@@ -716,6 +724,10 @@ def main():
         confusion_matrix,
         classes
     )
+
+    # ----------------------------------------------------------
+    # 7. Classification metrics
+    # ----------------------------------------------------------
 
     accuracy = calculate_accuracy(
         y_test,
@@ -734,7 +746,11 @@ def main():
     print("\nClassification Metrics")
     print("----------------------")
 
-    print(f"Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)")
+    print(
+        f"Accuracy: "
+        f"{accuracy:.4f} "
+        f"({accuracy * 100:.2f}%)"
+    )
 
     for class_label in classes:
         print(f"\nClass {class_label}:")
@@ -751,46 +767,37 @@ def main():
             f"{metrics[class_label]['f1']:.4f}"
         )
 
-    print("\nMacro averages:")
-    print(f"  Precision: {macro_precision:.4f}")
-    print(f"  Recall:    {macro_recall:.4f}")
-    print(f"  F1-score:  {macro_f1:.4f}")
+    print("\nMacro Averages")
+    print("--------------")
+    print(f"Precision: {macro_precision:.4f}")
+    print(f"Recall:    {macro_recall:.4f}")
+    print(f"F1-score:  {macro_f1:.4f}")
 
-    print("\nBest First Split")
-    print("----------------")
+    # ----------------------------------------------------------
+    # 8. Show the first decision made by the tree
+    # ----------------------------------------------------------
 
-    best_split = find_best_split(x_train, y_train)
+    best_split = find_best_split(
+        x_train,
+        y_train
+    )
 
     feature_index = best_split["feature_index"]
 
+    print("\nFirst Decision of the Tree")
+    print("--------------------------")
     print(
-        f"Feature: {FEATURE_NAMES[feature_index]}"
+        f"Feature: "
+        f"{FEATURE_NAMES[feature_index]}"
     )
-
     print(
-        f"Threshold: {best_split['threshold']:.4f}"
+        f"Threshold: "
+        f"{best_split['threshold']:.4f}"
     )
-
     print(
-        f"Weighted Gini: {best_split['gini']:.4f}"
+        f"Weighted Gini: "
+        f"{best_split['gini']:.4f}"
     )
-
-    print(
-        f"Left observations: {len(best_split['y_left'])}"
-    )
-
-    print(
-        f"Right observations: {len(best_split['y_right'])}"
-    )
-
-    print(
-        f"Left classes: {count_classes(best_split['y_left'])}"
-    )
-
-    print(
-        f"Right classes: {count_classes(best_split['y_right'])}"
-    )
-
 
 if __name__ == "__main__":
     main()
