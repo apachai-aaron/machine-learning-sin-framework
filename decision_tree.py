@@ -1,9 +1,9 @@
 """
-Decision Tree Classifier from Scratch
+Clasificador Decision Tree desde cero
 Dataset: UCI Wine Dataset
 
-This project implements a decision tree classifier manually,
-without using machine learning or advanced statistics frameworks.
+Este proyecto implementa manualmente un clasificador Decision Tree,
+sin utilizar frameworks de machine learning ni de estadística avanzada.
 """
 
 import csv
@@ -11,10 +11,11 @@ import random
 from pathlib import Path
 
 
-# Path to the dataset.
-# wine.data must be in the same folder as this Python file.
+# Ruta al dataset.
+# wine.data debe estar en la misma carpeta que este archivo de Python.
 DATASET_PATH = Path(__file__).with_name("wine.data")
 
+# Nombres originales de los features del UCI Wine Dataset.
 FEATURE_NAMES = [
     "Alcohol",
     "Malic acid",
@@ -31,16 +32,17 @@ FEATURE_NAMES = [
     "Proline"
 ]
 
+
 def load_wine_data(file_path):
     """
-    Reads the UCI Wine dataset.
+    Lee el UCI Wine Dataset.
 
-    The first column represents the wine class.
-    The remaining 13 columns represent chemical characteristics.
+    La primera columna representa la clase del vino.
+    Las 13 columnas restantes representan características químicas.
 
     Returns:
-        features: List containing the predictor variables.
-        labels: List containing the class of each observation.
+        features: Lista que contiene las variables predictoras.
+        labels: Lista que contiene la clase de cada observación.
     """
 
     features = []
@@ -53,16 +55,17 @@ def load_wine_data(file_path):
             if not row:
                 continue
 
-            # First column = class (1, 2 or 3)
+            # Primera columna = clase (1, 2 o 3)
             label = int(row[0])
 
-            # Remaining columns = chemical characteristics
+            # Columnas restantes = características químicas
             sample = [float(value) for value in row[1:]]
 
             labels.append(label)
             features.append(sample)
 
     return features, labels
+
 
 def split_data(
     features,
@@ -72,15 +75,15 @@ def split_data(
     seed=42
 ):
     """
-    Randomly divides the dataset into training,
-    validation and testing sets.
+    Divide aleatoriamente el dataset en conjuntos de training,
+    validation y test.
 
     Args:
-        features: Predictor variables.
-        labels: Target classes.
-        validation_ratio: Proportion used for validation.
-        test_ratio: Proportion used for final testing.
-        seed: Random seed for reproducibility.
+        features: Variables predictoras.
+        labels: Clases objetivo.
+        validation_ratio: Proporción utilizada para validation.
+        test_ratio: Proporción utilizada para el test final.
+        seed: Semilla aleatoria para asegurar reproducibilidad.
 
     Returns:
         x_train, x_validation, x_test,
@@ -89,6 +92,7 @@ def split_data(
 
     indices = list(range(len(features)))
 
+    # Fijar la semilla permite reproducir exactamente la misma partición.
     random.seed(seed)
     random.shuffle(indices)
 
@@ -132,7 +136,7 @@ def split_data(
 
 def count_classes(labels):
     """
-    Counts how many observations belong to each class.
+    Cuenta cuántas observaciones pertenecen a cada clase.
     """
 
     counts = {}
@@ -145,12 +149,13 @@ def count_classes(labels):
 
     return counts
 
+
 def gini_impurity(labels):
     """
-    Calculates the Gini impurity of a group of class labels.
+    Calcula el Gini impurity de un grupo de etiquetas de clase.
 
-    A Gini impurity of 0 means that all observations
-    belong to the same class.
+    Un Gini impurity de 0 significa que todas las observaciones
+    pertenecen a la misma clase.
     """
 
     if len(labels) == 0:
@@ -166,16 +171,16 @@ def gini_impurity(labels):
 
     return impurity
 
+
 def split_dataset(features, labels, feature_index, threshold):
     """
-    Divides a dataset into two groups according to a feature
-    and a threshold.
+    Divide el dataset en dos grupos según un feature y un threshold.
 
-    Left group:
-        feature value <= threshold
+    Grupo izquierdo:
+        valor del feature <= threshold
 
-    Right group:
-        feature value > threshold
+    Grupo derecho:
+        valor del feature > threshold
     """
 
     x_left = []
@@ -194,9 +199,10 @@ def split_dataset(features, labels, feature_index, threshold):
 
     return x_left, y_left, x_right, y_right
 
+
 def weighted_gini(left_labels, right_labels):
     """
-    Calculates the weighted Gini impurity produced by a split.
+    Calcula el weighted Gini impurity producido por una división.
     """
 
     total_size = len(left_labels) + len(right_labels)
@@ -215,14 +221,15 @@ def weighted_gini(left_labels, right_labels):
         + right_weight * right_impurity
     )
 
+
 def find_best_split(features, labels):
     """
-    Searches all features and possible thresholds to find
-    the split with the lowest weighted Gini impurity.
+    Recorre todos los features y thresholds posibles para encontrar
+    la división con el menor weighted Gini impurity.
 
     Returns:
-        Dictionary containing the best feature, threshold,
-        Gini score and resulting groups.
+        Diccionario que contiene el mejor feature, threshold,
+        valor de Gini y los grupos resultantes.
     """
 
     best_split = None
@@ -230,15 +237,15 @@ def find_best_split(features, labels):
 
     number_of_features = len(features[0])
 
-    # Try every feature
+    # Probar cada feature
     for feature_index in range(number_of_features):
 
-        # Obtain all different values for this feature
+        # Obtener todos los valores distintos de este feature
         values = sorted(
             set(sample[feature_index] for sample in features)
         )
 
-        # Test thresholds between consecutive values
+        # Probar thresholds entre valores consecutivos
         for i in range(len(values) - 1):
 
             threshold = (values[i] + values[i + 1]) / 2
@@ -250,7 +257,7 @@ def find_best_split(features, labels):
                 threshold
             )
 
-            # Ignore divisions where one side is empty
+            # Ignorar divisiones en las que uno de los lados quede vacío
             if not y_left or not y_right:
                 continue
 
@@ -275,14 +282,16 @@ def find_best_split(features, labels):
 
     return best_split
 
+
 def majority_class(labels):
     """
-    Returns the most frequent class in a group of labels.
+    Devuelve la clase más frecuente dentro de un grupo de etiquetas.
     """
 
     class_counts = count_classes(labels)
 
     return max(class_counts, key=class_counts.get)
+
 
 def build_tree(
     features,
@@ -292,48 +301,48 @@ def build_tree(
     min_samples_split=2
 ):
     """
-    Recursively builds a decision tree.
+    Construye un Decision Tree de forma recursiva.
 
-    The tree stops growing when:
-        1. All observations belong to the same class.
-        2. The maximum depth is reached.
-        3. There are too few observations to continue splitting.
-        4. No split improves the current Gini impurity.
+    El árbol deja de crecer cuando:
+        1. Todas las observaciones pertenecen a la misma clase.
+        2. Se alcanza la profundidad máxima.
+        3. Hay muy pocas observaciones para continuar dividiendo.
+        4. Ninguna división mejora el Gini impurity actual.
     """
 
-    # If every observation belongs to the same class,
-    # create a leaf immediately.
+    # Si todas las observaciones pertenecen a la misma clase,
+    # crear inmediatamente un nodo hoja.
     if len(set(labels)) == 1:
         return {
             "leaf": True,
             "prediction": labels[0]
         }
 
-    # Stop if maximum depth is reached.
+    # Detener si se alcanza la profundidad máxima.
     if depth >= max_depth:
         return {
             "leaf": True,
             "prediction": majority_class(labels)
         }
 
-    # Stop if there are too few observations.
+    # Detener si hay muy pocas observaciones.
     if len(labels) < min_samples_split:
         return {
             "leaf": True,
             "prediction": majority_class(labels)
         }
 
-    # Search for the best possible split.
+    # Buscar la mejor división posible.
     best_split = find_best_split(features, labels)
 
-    # If no valid split was found, create a leaf.
+    # Si no se encontró una división válida, crear un nodo hoja.
     if best_split is None:
         return {
             "leaf": True,
             "prediction": majority_class(labels)
         }
 
-    # Compare impurity before and after the split.
+    # Comparar el Gini impurity antes y después de la división.
     current_gini = gini_impurity(labels)
 
     if best_split["gini"] >= current_gini:
@@ -342,7 +351,7 @@ def build_tree(
             "prediction": majority_class(labels)
         }
 
-    # Recursively build the left branch.
+    # Construir recursivamente la rama izquierda.
     left_branch = build_tree(
         best_split["x_left"],
         best_split["y_left"],
@@ -351,7 +360,7 @@ def build_tree(
         min_samples_split
     )
 
-    # Recursively build the right branch.
+    # Construir recursivamente la rama derecha.
     right_branch = build_tree(
         best_split["x_right"],
         best_split["y_right"],
@@ -360,7 +369,7 @@ def build_tree(
         min_samples_split
     )
 
-    # Create an internal decision node.
+    # Crear un nodo interno de decisión.
     return {
         "leaf": False,
         "feature_index": best_split["feature_index"],
@@ -371,28 +380,30 @@ def build_tree(
         "right": right_branch
     }
 
+
 def predict_sample(sample, tree):
     """
-    Predicts the class of a single observation
-    by moving through the decision tree.
+    Predice la clase de una sola observación
+    recorriendo el Decision Tree.
     """
 
-    # If a leaf is reached, return its prediction.
+    # Si se alcanza un nodo hoja, devolver su predicción.
     if tree["leaf"]:
         return tree["prediction"]
 
     feature_index = tree["feature_index"]
     threshold = tree["threshold"]
 
-    # Follow the corresponding branch.
+    # Seguir la rama correspondiente.
     if sample[feature_index] <= threshold:
         return predict_sample(sample, tree["left"])
 
     return predict_sample(sample, tree["right"])
 
+
 def predict(features, tree):
     """
-    Predicts the class of multiple observations.
+    Predice la clase de múltiples observaciones.
     """
 
     predictions = []
@@ -403,28 +414,29 @@ def predict(features, tree):
 
     return predictions
 
+
 def create_confusion_matrix(actual, predicted, classes):
     """
-    Creates a confusion matrix manually.
+    Crea manualmente una matriz de confusión.
 
-    Rows represent the actual classes.
-    Columns represent the predicted classes.
+    Las filas representan las clases reales.
+    Las columnas representan las clases predichas.
     """
 
     matrix = []
 
-    # Create an empty square matrix filled with zeros.
+    # Crear una matriz cuadrada vacía llena de ceros.
     for _ in classes:
         row = [0] * len(classes)
         matrix.append(row)
 
-    # Map each class to its position in the matrix.
+    # Asociar cada clase con su posición dentro de la matriz.
     class_index = {}
 
     for index, class_label in enumerate(classes):
         class_index[class_label] = index
 
-    # Count every real/predicted combination.
+    # Contar cada combinación real/predicha.
     for real, prediction in zip(actual, predicted):
         real_index = class_index[real]
         predicted_index = class_index[prediction]
@@ -433,12 +445,13 @@ def create_confusion_matrix(actual, predicted, classes):
 
     return matrix
 
+
 def print_confusion_matrix(matrix, classes):
     """
-    Prints the confusion matrix in a readable format.
+    Imprime la matriz de confusión en un formato legible.
     """
 
-    print("Actual \\ Predicted", end="")
+    print("Real \\ Predicción", end="")
 
     for class_label in classes:
         print(f"{class_label:>8}", end="")
@@ -446,16 +459,17 @@ def print_confusion_matrix(matrix, classes):
     print()
 
     for i, row in enumerate(matrix):
-        print(f"Class {classes[i]:<9}", end="")
+        print(f"Clase {classes[i]:<9}", end="")
 
         for value in row:
             print(f"{value:>8}", end="")
 
         print()
 
+
 def calculate_accuracy(actual, predicted):
     """
-    Calculates classification accuracy.
+    Calcula el Accuracy de clasificación.
     """
 
     correct_predictions = 0
@@ -466,10 +480,11 @@ def calculate_accuracy(actual, predicted):
 
     return correct_predictions / len(actual)
 
+
 def calculate_class_metrics(matrix, classes):
     """
-    Calculates precision, recall and F1-score
-    for each class using the confusion matrix.
+    Calcula Precision, Recall y F1-score
+    para cada clase utilizando la matriz de confusión.
     """
 
     metrics = {}
@@ -520,10 +535,11 @@ def calculate_class_metrics(matrix, classes):
 
     return metrics
 
+
 def calculate_macro_averages(metrics):
     """
-    Calculates macro averages for precision,
-    recall and F1-score.
+    Calcula los macro averages de Precision,
+    Recall y F1-score.
     """
 
     number_of_classes = len(metrics)
@@ -545,6 +561,7 @@ def calculate_macro_averages(metrics):
 
     return macro_precision, macro_recall, macro_f1
 
+
 def choose_best_depth(
     x_train,
     y_train,
@@ -553,9 +570,9 @@ def choose_best_depth(
     depths
 ):
     """
-    Trains multiple decision trees using different
-    maximum depths and selects the depth with the
-    highest validation accuracy.
+    Entrena varios Decision Trees utilizando diferentes
+    profundidades máximas y selecciona la profundidad con
+    el mayor Validation Accuracy.
     """
 
     best_depth = None
@@ -592,23 +609,24 @@ def choose_best_depth(
 
     return best_depth, best_accuracy, results
 
+
 def main():
-    """Runs the complete Decision Tree classification experiment."""
+    """Ejecuta el experimento completo de clasificación con Decision Tree."""
 
     # ----------------------------------------------------------
-    # 1. Load dataset
+    # 1. Cargar el dataset
     # ----------------------------------------------------------
 
     features, labels = load_wine_data(DATASET_PATH)
 
     print("UCI Wine Dataset")
     print("----------------")
-    print(f"Number of observations: {len(features)}")
-    print(f"Number of features: {len(features[0])}")
-    print(f"Classes found: {sorted(set(labels))}")
+    print(f"Número de observaciones: {len(features)}")
+    print(f"Número de features: {len(features[0])}")
+    print(f"Clases encontradas: {sorted(set(labels))}")
 
     # ----------------------------------------------------------
-    # 2. Split dataset
+    # 2. Dividir el dataset
     # ----------------------------------------------------------
 
     (
@@ -626,24 +644,24 @@ def main():
         seed=42
     )
 
-    print("\nDataset Split")
-    print("-------------")
-    print(f"Training observations: {len(x_train)}")
-    print(f"Validation observations: {len(x_validation)}")
-    print(f"Testing observations: {len(x_test)}")
+    print("\nDivisión del dataset")
+    print("-------------------")
+    print(f"Observaciones de training: {len(x_train)}")
+    print(f"Observaciones de validation: {len(x_validation)}")
+    print(f"Observaciones de test: {len(x_test)}")
 
-    print("\nClass Distribution")
-    print("------------------")
+    print("\nDistribución de clases")
+    print("-----------------------")
     print(f"Training: {count_classes(y_train)}")
     print(f"Validation: {count_classes(y_validation)}")
-    print(f"Testing: {count_classes(y_test)}")
+    print(f"Test: {count_classes(y_test)}")
 
     # ----------------------------------------------------------
-    # 3. Select tree depth using validation data
+    # 3. Seleccionar la profundidad usando los datos de validation
     # ----------------------------------------------------------
 
-    print("\nModel Selection")
-    print("---------------")
+    print("\nSelección del modelo")
+    print("--------------------")
 
     candidate_depths = [1, 2, 3, 4, 5, 6]
 
@@ -661,24 +679,24 @@ def main():
 
     for depth, validation_accuracy in depth_results:
         print(
-            f"Depth {depth}: "
+            f"Profundidad {depth}: "
             f"{validation_accuracy:.4f} "
             f"({validation_accuracy * 100:.2f}%)"
         )
 
-    print(f"\nSelected depth: {best_depth}")
+    print(f"\nProfundidad seleccionada: {best_depth}")
     print(
-        f"Best validation accuracy: "
+        f"Mejor Validation Accuracy: "
         f"{best_validation_accuracy:.4f} "
         f"({best_validation_accuracy * 100:.2f}%)"
     )
 
     # ----------------------------------------------------------
-    # 4. Build final tree
+    # 4. Construir el árbol final
     # ----------------------------------------------------------
 
-    print("\nBuilding Final Decision Tree")
-    print("----------------------------")
+    print("\nConstrucción del Decision Tree final")
+    print("------------------------------------")
 
     tree = build_tree(
         x_train,
@@ -687,26 +705,26 @@ def main():
         min_samples_split=2
     )
 
-    print("Final decision tree successfully built.")
+    print("Decision Tree final construido correctamente.")
 
     # ----------------------------------------------------------
-    # 5. Make predictions on the test set
+    # 5. Realizar predicciones sobre el test set
     # ----------------------------------------------------------
 
     predictions = predict(x_test, tree)
 
-    print("\nFirst 10 Test Predictions")
-    print("-------------------------")
+    print("\nPrimeras 10 predicciones del test set")
+    print("-------------------------------------")
 
     for i in range(min(10, len(y_test))):
         print(
-            f"Wine {i + 1}: "
-            f"Real class = {y_test[i]} | "
-            f"Predicted class = {predictions[i]}"
+            f"Vino {i + 1}: "
+            f"Clase real = {y_test[i]} | "
+            f"Clase predicha = {predictions[i]}"
         )
 
     # ----------------------------------------------------------
-    # 6. Confusion matrix
+    # 6. Matriz de confusión
     # ----------------------------------------------------------
 
     classes = sorted(set(labels))
@@ -717,8 +735,8 @@ def main():
         classes
     )
 
-    print("\nConfusion Matrix")
-    print("----------------")
+    print("\nMatriz de confusión")
+    print("-------------------")
 
     print_confusion_matrix(
         confusion_matrix,
@@ -726,7 +744,7 @@ def main():
     )
 
     # ----------------------------------------------------------
-    # 7. Classification metrics
+    # 7. Métricas de clasificación
     # ----------------------------------------------------------
 
     accuracy = calculate_accuracy(
@@ -743,8 +761,8 @@ def main():
         calculate_macro_averages(metrics)
     )
 
-    print("\nClassification Metrics")
-    print("----------------------")
+    print("\nMétricas de clasificación")
+    print("--------------------------")
 
     print(
         f"Accuracy: "
@@ -753,7 +771,7 @@ def main():
     )
 
     for class_label in classes:
-        print(f"\nClass {class_label}:")
+        print(f"\nClase {class_label}:")
         print(
             f"  Precision: "
             f"{metrics[class_label]['precision']:.4f}"
@@ -767,14 +785,14 @@ def main():
             f"{metrics[class_label]['f1']:.4f}"
         )
 
-    print("\nMacro Averages")
+    print("\nMacro averages")
     print("--------------")
     print(f"Precision: {macro_precision:.4f}")
     print(f"Recall:    {macro_recall:.4f}")
     print(f"F1-score:  {macro_f1:.4f}")
 
     # ----------------------------------------------------------
-    # 8. Show the first decision made by the tree
+    # 8. Mostrar la primera decisión realizada por el árbol
     # ----------------------------------------------------------
 
     best_split = find_best_split(
@@ -784,7 +802,7 @@ def main():
 
     feature_index = best_split["feature_index"]
 
-    print("\nFirst Decision of the Tree")
+    print("\nPrimera decisión del árbol")
     print("--------------------------")
     print(
         f"Feature: "
@@ -798,6 +816,7 @@ def main():
         f"Weighted Gini: "
         f"{best_split['gini']:.4f}"
     )
+
 
 if __name__ == "__main__":
     main()
